@@ -1,0 +1,53 @@
+---
+- name: "PLAY 1: TESTING RESTCONF"
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    cisco_sandbox: "sandbox-iosxe-latest-1.cisco.com"
+    cisco_username: "admin"
+    cisco_password: "C1sco12345"
+    cisco_restconf_native_endpoint: "/restconf/data/native/interface"
+
+  tasks:
+    - name: PULL INFO
+      ansible.builtin.uri:
+        url: "https://{{ cisco_sandbox }}{{ cisco_restconf_native_endpoint }}"
+        method: GET
+        user: "{{ cisco_username }}"
+        password: "{{ cisco_password }}"
+        return_content: true
+        headers:
+          Accept: "application/yang-data+json"
+        validate_certs: false
+      register: result_api
+    
+    - name: SETFACT STRING TO DICT
+      set_fact:
+        result: "{{ result_api.content | from_yaml }}"
+    
+    - name: PRINT RESULT 1st LOOP
+      debug:
+        msg: "{{ item.key }} {{ item.value[0].name }} {{ item.value|length }}"
+      loop: "{{ result['Cisco-IOS-XE-native:interface'] | dict2items }}"
+      loop_control:
+        label: "{{ item.key }}"
+    
+    - name: PRINT RESULT LOOP of LOOP
+      debug:
+        msg: "{{ item.port_name }}{{ item.port_id }} - {{ item.full|length }} = {{ item.full }}"
+      loop: >-
+        {%- set results = [] -%}
+        {%- for item in result['Cisco-IOS-XE-native:interface']|dict2items  -%}
+        {%- for port in item.value -%}
+        {%- set _ = results.append({
+          "full": port,
+          "port_id": port.name,
+          "port_name": item.key
+        }) %}
+        {%- endfor -%}
+        {%- endfor -%}
+        {{ results }}
+      loop_control:
+        label: "{{ item.port_name }}{{ item.port_id }}"
+...
