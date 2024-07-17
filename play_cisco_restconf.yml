@@ -1,0 +1,27 @@
+---
+- name: "PLAY 1: TESTING RESTCONF"
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    cisco_sandbox: "sandbox-iosxe-latest-1.cisco.com"
+    cisco_username: "admin"
+    cisco_password: "C1sco12345"
+    cisco_restconf_native_endpoint: "/restconf/data/native/interface"
+
+  tasks:
+    - name: PULL INFO
+      ansible.builtin.uri:
+        url: "https://{{ cisco_sandbox }}{{ cisco_restconf_native_endpoint }}"
+        method: GET
+        user: "{{ cisco_username }}"
+        password: "{{ cisco_password }}"
+        return_content: true
+        headers:
+          Accept: "application/yang-data+json"
+        validate_certs: false
+      register: result
+
+    - name: PRINT RESULT
+      debug:
+        msg: "{{ result }}"
